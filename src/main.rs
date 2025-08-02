@@ -5,6 +5,13 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, StatusCode, Server};
 use csv::Reader;
 
+fn not_found() -> Result<Response<Body>, anyhow::Error>
+{
+    let mut not_found = Response::default();
+    *not_found.status_mut() = StatusCode::NOT_FOUND;
+    Ok(not_found) 
+}
+
 /// This is our service handler. It receives a Request, routes on its
 /// path, and returns a Future of a Response.
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Error> {
@@ -15,6 +22,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Er
         ))),
 
         (&Method::POST, "/find_rate") => {
+            let mut found = false;
             let post_body = hyper::body::to_bytes(req.into_body()).await?;
             let mut rate = "0.08".to_string(); // default is 8%
 
@@ -22,11 +30,16 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Er
             let mut rdr = Reader::from_reader(rates_data);
             for result in rdr.records() {
                 let record = result?;
-                // dbg!("{:?}", record.clone());
+                dbg!("{:?}", record.clone());
                 if str::from_utf8(&post_body).unwrap().eq(&record[0]) {
                     rate = record[1].to_string();
+                    found = true;
                     break;
                 }
+            }
+            
+            if !found {
+                return self::not_found();
             }
 
             Ok(Response::new(Body::from(rate)))
@@ -34,9 +47,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, anyhow::Er
 
         // Return the 404 Not Found for other routes.
         _ => {
-            let mut not_found = Response::default();
-            *not_found.status_mut() = StatusCode::NOT_FOUND;
-            Ok(not_found)
+            self::not_found()
         }
     }
 }
