@@ -8,17 +8,17 @@ on:
         required: true
         default: 'info'
   push:
-    branches: [ main ]
+    branches: [ main, milestone_3 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, milestone_3 ]
 
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       
     - name: Install apt-get packages
       run: |
